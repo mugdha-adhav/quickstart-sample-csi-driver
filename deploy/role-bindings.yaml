@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: quickstart.csi.k8s.io
+    app.kubernetes.io/part-of: quickstart-sample-csi-driver
+    app.kubernetes.io/name: csi-quickstart-plugin
+    app.kubernetes.io/component: provisioner-role
+  name: csi-quickstart-plugin-provisioner-role
+  namespace: quickstart
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: external-provisioner-cfg
+subjects:
+- kind: ServiceAccount
+  name: csi-quickstart-plugin-sa
+  namespace: quickstart

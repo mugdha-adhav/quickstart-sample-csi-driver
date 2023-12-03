@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"google.golang.org/grpc/codes"
@@ -55,6 +57,7 @@ func (d *driver) ControllerGetVolume(context.Context, *csi.ControllerGetVolumeRe
 
 func (d *driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
 	return &csi.ValidateVolumeCapabilitiesResponse{
+		// Additionally perform some more validations on volume here.
 		Confirmed: &csi.ValidateVolumeCapabilitiesResponse_Confirmed{
 			VolumeContext:      req.GetVolumeContext(),
 			VolumeCapabilities: req.GetVolumeCapabilities(),
@@ -65,7 +68,25 @@ func (d *driver) ValidateVolumeCapabilities(ctx context.Context, req *csi.Valida
 }
 
 func (d *driver) ListVolumes(context.Context, *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	return &csi.ListVolumesResponse{}, nil
+	dirs, err := os.ReadDir(baseVolumeDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	volEntries := &csi.ListVolumesResponse{}
+	for _, e := range dirs {
+		size, err := getDirSize(fmt.Sprintf("%s/%s", baseVolumeDir, e.Name()))
+		if err != nil {
+			return nil, err
+		}
+		volEntries.Entries = append(volEntries.Entries, &csi.ListVolumesResponse_Entry{
+			Volume: &csi.Volume{
+				VolumeId:      e.Name(),
+				CapacityBytes: size,
+			},
+		})
+	}
+	return volEntries, nil
 }
 
 func (d *driver) GetCapacity(context.Context, *csi.GetCapacityRequest) (*csi.GetCapacityResponse, error) {
@@ -79,13 +100,6 @@ func (d *driver) ControllerGetCapabilities(context.Context, *csi.ControllerGetCa
 				Type: &csi.ControllerServiceCapability_Rpc{
 					Rpc: &csi.ControllerServiceCapability_RPC{
 						Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
 					},
 				},
 			},
@@ -118,4 +132,19 @@ func (d *driver) ControllerExpandVolume(context.Context, *csi.ControllerExpandVo
 
 func (d *driver) ControllerModifyVolume(context.Context, *csi.ControllerModifyVolumeRequest) (*csi.ControllerModifyVolumeResponse, error) {
 	return &csi.ControllerModifyVolumeResponse{}, nil
+}
+
+// Utils
+func getDirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
 }

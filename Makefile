@@ -4,4 +4,4 @@ build:
 	docker build -f Dockerfile -t ${IMAGE}:${TAG} .
 
 run: 
-	docker run -it ${IMAGE}:${TAG}
+	docker run -it -p 50051:50051 ${IMAGE}:${TAG}

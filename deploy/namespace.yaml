@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: quickstart
+  labels:
+    app.kubernetes.io/instance: quickstart.csi.k8s.io
+    app.kubernetes.io/part-of: quickstart-sample-csi-driver
+    app.kubernetes.io/name: csi-quickstart-plugin
+    app.kubernetes.io/component: namespace
