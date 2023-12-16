@@ -24,9 +24,13 @@ func init() {
 }
 
 func (d *driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+	log.Printf("CreateVolume: request received")
+
 	if path, err := os.MkdirTemp(baseVolumeDir, "quickstart-"); err != nil {
 		return nil, status.Error(codes.Aborted, err.Error())
 	} else {
+		log.Printf("CreateVolume: successfully created volume: %s", path)
+
 		return &csi.CreateVolumeResponse{
 			Volume: &csi.Volume{
 				VolumeId: path,
@@ -36,9 +40,13 @@ func (d *driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest)
 }
 
 func (d *driver) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+	log.Printf("DeleteVolume: request received for: %s", req.VolumeId)
+
 	if err := os.RemoveAll(req.VolumeId); err != nil {
 		return nil, status.Error(codes.Aborted, err.Error())
 	}
+
+	log.Printf("DeleteVolume: successfully deleted volume: %s", req.VolumeId)
 
 	return &csi.DeleteVolumeResponse{}, nil
 }
