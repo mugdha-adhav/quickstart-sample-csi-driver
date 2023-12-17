@@ -2,10 +2,7 @@
 CSI driver for provisioning host-path volume.
 
 ## TODO:
- - [ ] Mount directory existing on the host, onto the pod in read only mode.
- - [ ] Create a directory, on the host, if it doesn't exist before mounting.
- - [ ] Support for mounting in read-write mode.
- - [ ] Support for file mount.
+ - [ ] Create a directory on the host and mount it.
 
 ### Mount directory existing on the host, onto the pod in read only mode.
 
