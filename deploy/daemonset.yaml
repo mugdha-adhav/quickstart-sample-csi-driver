@@ -26,7 +26,7 @@ spec:
       serviceAccountName: csi-quickstart-plugin-sa
       containers:
         - name: plugin
-          image: mugdhaadhav/quickstart-sample-csi-driver:v0.0.1
+          image: mugdhaadhav/quickstart-sample-csi-driver:v0.0.10
           args:
             - "--drivername=quickstart.csi.k8s.io"
             - "--endpoint=$(CSI_ENDPOINT)"

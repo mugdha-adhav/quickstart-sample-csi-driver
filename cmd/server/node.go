@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"k8s.io/kubernetes/pkg/volume/util/volumepathhandler"
 	"k8s.io/utils/mount"
 )
 
@@ -17,14 +19,45 @@ func (d *driver) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeReques
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	log.Printf("NodePublishVolume: request received for volume %s with target-path: %s", req.VolumeId, req.TargetPath)
+	targetPath := req.GetTargetPath()
+	log.Printf("NodePublishVolume: request received for volume %s with target-path: %s\n", req.VolumeId, targetPath)
 	path := fmt.Sprintf("%s/%s", baseVolumeDir, req.VolumeId)
 
+	// Create a block file.
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			cmd := exec.Command("fallocate", "-l", "100M", path)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				return nil, fmt.Errorf("failed to create block device: %v, %v", err, string(output))
+			}
+		} else {
+			return nil, fmt.Errorf("failed to stat block device: %v, %v", path, err)
+		}
+	}
+
+	// Associate block file with the loop device.
+	volPathHandler := volumepathhandler.VolumePathHandler{}
+	_, err = volPathHandler.AttachFileDevice(path)
+	if err != nil {
+		// Remove the block file because it'll no longer be used again.
+		if err2 := os.Remove(path); err2 != nil {
+			fmt.Printf("failed to cleanup block file %s: %v\n", path, err2)
+		}
+		return nil, fmt.Errorf("failed to attach device %v: %v", path, err)
+	}
+
+	if err := os.MkdirAll(targetPath, 0750); err != nil {
+		return nil, err
+	}
+	log.Println("NodePublishVolume: Created directory", path)
+
 	// Check if the target path is already mounted, if yes prevent remounting.
-	notMountPoint, err := mount.IsNotMountPoint(mount.New(""), req.TargetPath)
+	notMountPoint, err := mount.IsNotMountPoint(mount.New(""), targetPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("error checking path %s for mount: %w", req.TargetPath, err)
+			return nil, fmt.Errorf("error checking path %s for mount: %w", targetPath, err)
 		}
 		// Target Path is ready for mounting.
 		notMountPoint = true
@@ -34,12 +67,18 @@ func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
+	// Get loop device from the volume path.
+	loopDevice, err := volPathHandler.GetLoopDevice(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the loop device: %w", err)
+	}
+
 	// Mounting the volume.
 	options := []string{"bind"}
-	if err := mount.New("").Mount(path, req.TargetPath, "", options); err != nil {
-		return nil, fmt.Errorf("failed to mount block device: %s at %s: %w", path, req.TargetPath, err)
+	if err := mount.New("").Mount(loopDevice, targetPath, "", options); err != nil {
+		return nil, fmt.Errorf("failed to mount block device: %s at %s: %w", path, targetPath, err)
 	}
-	log.Printf("NodePublishVolume: volume succesesfully mounted at: %s for volume: %s", req.TargetPath, req.VolumeId)
+	log.Printf("NodePublishVolume: volume succesesfully mounted at: %s for volume: %s", targetPath, req.VolumeId)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	baseVolumeDir string = "tmp/quickstart/volumes"
+	baseVolumeDir string = "/tmp/quickstart/volumes"
 )
 
 func init() {
@@ -104,20 +104,20 @@ func (d *driver) GetCapacity(context.Context, *csi.GetCapacityRequest) (*csi.Get
 func (d *driver) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	return &csi.ControllerGetCapabilitiesResponse{
 		Capabilities: []*csi.ControllerServiceCapability{
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-					},
-				},
-			},
+			// {
+			// 	Type: &csi.ControllerServiceCapability_Rpc{
+			// 		Rpc: &csi.ControllerServiceCapability_RPC{
+			// 			Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
+			// 		},
+			// 	},
+			// },
+			// {
+			// 	Type: &csi.ControllerServiceCapability_Rpc{
+			// 		Rpc: &csi.ControllerServiceCapability_RPC{
+			// 			Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+			// 		},
+			// 	},
+			// },
 		},
 	}, nil
 }
