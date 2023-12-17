@@ -1,6 +1,22 @@
 ## Description
 CSI driver for provisioning host-path volume.
 
+## TODO:
+ - [ ] Mount directory existing on the host, onto the pod in read only mode.
+ - [ ] Create a directory, on the host, if it doesn't exist before mounting.
+ - [ ] Support for mounting in read-write mode.
+ - [ ] Support for file mount.
+
+### Mount directory existing on the host, onto the pod in read only mode.
+
+- [x] Setup gRPC server
+- [x] Expose Controller, Node and Identity Service RPCs
+- [x] Identity Service implemented
+- [ ] Node Service implemented
+    - [ ] `NodePublishVolume` implemented
+    - [ ] `NodeUnpublishVolume` implemented
+    - [ ] `NodeGetCapabilities` implemented
+
 ## References
 * [Developing CSI driver](https://kubernetes-csi.github.io/docs/developing.html).
 * [CSI spec](https://github.com/container-storage-interface/spec/blob/master/spec.md).
