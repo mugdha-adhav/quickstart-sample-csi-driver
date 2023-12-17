@@ -15,13 +15,17 @@ import (
 func (d *driver) NodeStageVolume(context.Context, *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
 	return &csi.NodeStageVolumeResponse{}, nil
 }
+
 func (d *driver) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
 	return &csi.NodeUnstageVolumeResponse{}, nil
 }
+
 func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	targetPath := req.GetTargetPath()
 	log.Printf("NodePublishVolume: request received for volume %s with target-path: %s\n", req.VolumeId, targetPath)
 	path := fmt.Sprintf("%s/%s", baseVolumeDir, req.VolumeId)
+
+	mounter := mount.New("")
 
 	// Create a block file.
 	_, err := os.Stat(path)
@@ -48,13 +52,27 @@ func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return nil, fmt.Errorf("failed to attach device %v: %v", path, err)
 	}
 
-	if err := os.MkdirAll(targetPath, 0750); err != nil {
-		return nil, err
+	// Get loop device from the volume path.
+	loopDevice, err := volPathHandler.GetLoopDevice(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the loop device: %w", err)
 	}
-	log.Println("NodePublishVolume: Created directory", path)
+
+	log.Println("NodePublishVolume: loop device", loopDevice)
+
+	// Check if the target path exists. Create if not present.
+	_, err = os.Lstat(targetPath)
+	if os.IsNotExist(err) {
+		if err = makeFile(targetPath); err != nil {
+			return nil, fmt.Errorf("failed to create target path: %w", err)
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to check if the target block file exists: %w", err)
+	}
 
 	// Check if the target path is already mounted, if yes prevent remounting.
-	notMountPoint, err := mount.IsNotMountPoint(mount.New(""), targetPath)
+	notMountPoint, err := mount.IsNotMountPoint(mounter, targetPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("error checking path %s for mount: %w", targetPath, err)
@@ -67,21 +85,16 @@ func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
-	// Get loop device from the volume path.
-	loopDevice, err := volPathHandler.GetLoopDevice(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get the loop device: %w", err)
-	}
-
 	// Mounting the volume.
 	options := []string{"bind"}
-	if err := mount.New("").Mount(loopDevice, targetPath, "", options); err != nil {
+	if err := mounter.Mount(loopDevice, targetPath, "", options); err != nil {
 		return nil, fmt.Errorf("failed to mount block device: %s at %s: %w", path, targetPath, err)
 	}
 	log.Printf("NodePublishVolume: volume succesesfully mounted at: %s for volume: %s", targetPath, req.VolumeId)
 
 	return &csi.NodePublishVolumeResponse{}, nil
 }
+
 func (d *driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	targetPath := req.GetTargetPath()
 
@@ -103,19 +116,36 @@ func (d *driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	}
 	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
+
 func (d *driver) NodeGetVolumeStats(context.Context, *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
 	return &csi.NodeGetVolumeStatsResponse{}, nil
 }
+
 func (d *driver) NodeExpandVolume(context.Context, *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	return &csi.NodeExpandVolumeResponse{}, nil
 }
+
 func (d *driver) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	return &csi.NodeGetCapabilitiesResponse{
 		Capabilities: []*csi.NodeServiceCapability{},
 	}, nil
 }
+
 func (d *driver) NodeGetInfo(context.Context, *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
 	return &csi.NodeGetInfoResponse{
 		NodeId: d.config.nodeID,
 	}, nil
+}
+
+// makeFile ensures that the file exists, creating it if necessary.
+// The parent directory must exist.
+func makeFile(pathname string) error {
+	f, err := os.OpenFile(pathname, os.O_CREATE, os.FileMode(0o644))
+	defer f.Close()
+	if err != nil {
+		if !os.IsExist(err) {
+			return err
+		}
+	}
+	return nil
 }

@@ -4,13 +4,13 @@ CSI driver for provisioning host-path volume.
 ## TODO:
  - [ ] Create a directory on the host and mount it.
 
-### Mount directory existing on the host, onto the pod in read only mode.
+### Create a directory on the host and mount it.
 
 - [x] Setup gRPC server
 - [x] Expose Controller, Node and Identity Service RPCs
 - [x] Identity Service implemented
-- [ ] Node Service implemented
-    - [ ] `NodePublishVolume` implemented
+- [x] Node Service implemented
+    - [x] `NodePublishVolume` implemented
         - Volume corresponding to the `volume_id` published(mounted) at specified `target_path`
     - [ ] `NodeUnpublishVolume` implemented
     - [ ] `NodeGetCapabilities` implemented

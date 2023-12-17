@@ -26,7 +26,7 @@ spec:
       serviceAccountName: csi-quickstart-plugin-sa
       containers:
         - name: plugin
-          image: mugdhaadhav/quickstart-sample-csi-driver:v0.0.10
+          image: mugdhaadhav/quickstart-sample-csi-driver:v0.0.1
           args:
             - "--drivername=quickstart.csi.k8s.io"
             - "--endpoint=$(CSI_ENDPOINT)"
@@ -91,17 +91,6 @@ spec:
           args:
           - --csi-address=/csi/csi.sock
           - --health-port=9898
-
-        - name: csi-provisioner
-          image: registry.k8s.io/sig-storage/csi-provisioner:v3.6.0
-          args:
-            - -v=5
-            - --csi-address=/csi/csi.sock
-          securityContext:
-            privileged: true
-          volumeMounts:
-            - mountPath: /csi
-              name: socket-dir
 
       volumes:
         - hostPath:
