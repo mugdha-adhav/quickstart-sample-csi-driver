@@ -14,6 +14,7 @@ CSI driver for provisioning host-path volume.
 - [x] Identity Service implemented
 - [ ] Node Service implemented
     - [ ] `NodePublishVolume` implemented
+        - Volume corresponding to the `volume_id` published(mounted) at specified `target_path`
     - [ ] `NodeUnpublishVolume` implemented
     - [ ] `NodeGetCapabilities` implemented
 
