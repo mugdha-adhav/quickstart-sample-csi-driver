@@ -15,15 +15,7 @@ func (d *driver) GetPluginInfo(context.Context, *csi.GetPluginInfoRequest) (*csi
 
 func (d *driver) GetPluginCapabilities(context.Context, *csi.GetPluginCapabilitiesRequest) (*csi.GetPluginCapabilitiesResponse, error) {
 	return &csi.GetPluginCapabilitiesResponse{
-		Capabilities: []*csi.PluginCapability{
-			// {
-			// 	Type: &csi.PluginCapability_Service_{
-			// 		Service: &csi.PluginCapability_Service{
-			// 			Type: csi.PluginCapability_Service_CONTROLLER_SERVICE,
-			// 		},
-			// 	},
-			// },
-		},
+		Capabilities: []*csi.PluginCapability{},
 	}, nil
 }
 

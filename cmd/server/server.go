@@ -42,7 +42,6 @@ func Start(endpoint, name, nodeID string) {
 
 	s := grpc.NewServer([]grpc.ServerOption{}...)
 	csi.RegisterIdentityServer(s, d)
-	// csi.RegisterControllerServer(s, d)
 	csi.RegisterNodeServer(s, d)
 	s.Serve(lis)
 }

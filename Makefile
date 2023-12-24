@@ -1,10 +1,19 @@
 IMAGE=mugdhaadhav/quickstart-sample-csi-driver
-TAG=v0.0.1
+TAG=latest
 build:
-	docker build -f Dockerfile -t ${IMAGE}:${TAG} .
+	docker build -f Dockerfile -t ${IMAGE}:$(TAG) .
 
-kind-push:
-	kind load docker-image ${IMAGE}:${TAG}
+push:
+	docker build -f Dockerfile -t ${IMAGE}:$(TAG) . --push
+
+load:
+	kind load docker-image ${IMAGE}:$(TAG)
 
 run: 
-	docker run -it -p 50051:50051 ${IMAGE}:${TAG}
+	docker run -it -p 50051:50051 ${IMAGE}:$(TAG)
+
+deploy-kind: build load
+	kubectl apply -f deploy
+
+remove-kind:
+	kubectl delete -f deploy
