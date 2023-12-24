@@ -4,7 +4,7 @@ build:
 	docker build -f Dockerfile -t ${IMAGE}:${TAG} .
 
 kind-push:
-	kind load docker-image ${IMAGE}:${TAG} -n csi-test
+	kind load docker-image ${IMAGE}:${TAG}
 
 run: 
 	docker run -it -p 50051:50051 ${IMAGE}:${TAG}

@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -12,48 +13,46 @@ import (
 	"k8s.io/utils/mount"
 )
 
-func (d *driver) NodeStageVolume(context.Context, *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	return &csi.NodeStageVolumeResponse{}, nil
-}
-
-func (d *driver) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
-	return &csi.NodeUnstageVolumeResponse{}, nil
+func (d *driver) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+	return &csi.NodeGetCapabilitiesResponse{
+		Capabilities: []*csi.NodeServiceCapability{},
+	}, nil
 }
 
 func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	targetPath := req.GetTargetPath()
 	log.Printf("NodePublishVolume: request received for volume %s with target-path: %s\n", req.VolumeId, targetPath)
-	path := fmt.Sprintf("%s/%s", baseVolumeDir, req.VolumeId)
+	driverPath := fmt.Sprintf("%s/%s", baseVolumeDir, req.VolumeId)
 
 	mounter := mount.New("")
 
 	// Create a block file.
-	_, err := os.Stat(path)
+	_, err := os.Stat(driverPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			cmd := exec.Command("fallocate", "-l", "100M", path)
+			cmd := exec.Command("fallocate", "-l", "100M", driverPath)
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				return nil, fmt.Errorf("failed to create block device: %v, %v", err, string(output))
 			}
 		} else {
-			return nil, fmt.Errorf("failed to stat block device: %v, %v", path, err)
+			return nil, fmt.Errorf("failed to stat block device: %v, %v", driverPath, err)
 		}
 	}
 
 	// Associate block file with the loop device.
 	volPathHandler := volumepathhandler.VolumePathHandler{}
-	_, err = volPathHandler.AttachFileDevice(path)
+	_, err = volPathHandler.AttachFileDevice(driverPath)
 	if err != nil {
 		// Remove the block file because it'll no longer be used again.
-		if err2 := os.Remove(path); err2 != nil {
-			fmt.Printf("failed to cleanup block file %s: %v\n", path, err2)
+		if err2 := os.Remove(driverPath); err2 != nil {
+			fmt.Printf("failed to cleanup block file %s: %v\n", driverPath, err2)
 		}
-		return nil, fmt.Errorf("failed to attach device %v: %v", path, err)
+		return nil, fmt.Errorf("failed to attach device %v: %v", driverPath, err)
 	}
 
 	// Get loop device from the volume path.
-	loopDevice, err := volPathHandler.GetLoopDevice(path)
+	loopDevice, err := volPathHandler.GetLoopDevice(driverPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get the loop device: %w", err)
 	}
@@ -88,7 +87,7 @@ func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 	// Mounting the volume.
 	options := []string{"bind"}
 	if err := mounter.Mount(loopDevice, targetPath, "", options); err != nil {
-		return nil, fmt.Errorf("failed to mount block device: %s at %s: %w", path, targetPath, err)
+		return nil, fmt.Errorf("failed to mount block device: %s at %s: %w", driverPath, targetPath, err)
 	}
 	log.Printf("NodePublishVolume: volume succesesfully mounted at: %s for volume: %s", targetPath, req.VolumeId)
 
@@ -97,6 +96,20 @@ func (d *driver) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolu
 
 func (d *driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	targetPath := req.GetTargetPath()
+	driverPath := fmt.Sprintf("%s/%s", baseVolumeDir, req.VolumeId)
+
+	fileExists := func(path string) {
+		_, err := os.Stat(path)
+
+		if errors.Is(err, os.ErrNotExist) {
+			log.Println("NodeUnPublishVolume: Path doesn't exist: ", path)
+			return
+		}
+		log.Println("NodeUnPublishVolume: Path exists: ", path)
+	}
+
+	fileExists(targetPath)
+	fileExists(driverPath)
 
 	// Unmount only if the target path is really a mount point.
 	if notMountPoint, err := mount.IsNotMountPoint(mount.New(""), targetPath); err != nil {
@@ -114,7 +127,24 @@ func (d *driver) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublish
 	if err := os.RemoveAll(targetPath); err != nil {
 		return nil, fmt.Errorf("remove target path: %w", err)
 	}
+
+	// Delete the volume
+	if err := os.RemoveAll(driverPath); err != nil {
+		return nil, fmt.Errorf("remove host path: %w", err)
+	}
+	log.Printf("NodeUnPublishVolume: host path deleted %s with target-path: %s\n", req.VolumeId, targetPath)
+
+	fileExists(targetPath)
+	fileExists(driverPath)
 	return &csi.NodeUnpublishVolumeResponse{}, nil
+}
+
+func (d *driver) NodeStageVolume(context.Context, *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
+	return &csi.NodeStageVolumeResponse{}, nil
+}
+
+func (d *driver) NodeUnstageVolume(context.Context, *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 
 func (d *driver) NodeGetVolumeStats(context.Context, *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
@@ -123,12 +153,6 @@ func (d *driver) NodeGetVolumeStats(context.Context, *csi.NodeGetVolumeStatsRequ
 
 func (d *driver) NodeExpandVolume(context.Context, *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
 	return &csi.NodeExpandVolumeResponse{}, nil
-}
-
-func (d *driver) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
-	return &csi.NodeGetCapabilitiesResponse{
-		Capabilities: []*csi.NodeServiceCapability{},
-	}, nil
 }
 
 func (d *driver) NodeGetInfo(context.Context, *csi.NodeGetInfoRequest) (*csi.NodeGetInfoResponse, error) {
@@ -141,11 +165,12 @@ func (d *driver) NodeGetInfo(context.Context, *csi.NodeGetInfoRequest) (*csi.Nod
 // The parent directory must exist.
 func makeFile(pathname string) error {
 	f, err := os.OpenFile(pathname, os.O_CREATE, os.FileMode(0o644))
-	defer f.Close()
 	if err != nil {
 		if !os.IsExist(err) {
 			return err
 		}
 	}
+	defer f.Close()
+
 	return nil
 }

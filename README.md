@@ -1,8 +1,8 @@
 ## Description
-CSI driver for provisioning host-path volume.
+CSI driver for mounting a volume provided by the driver inside a pod.
 
 ## TODO:
- - [ ] Create a directory on the host and mount it.
+ - [x] Create a block device inside the CSI Driver pod and mount it in the target pod.
 
 ### Create a directory on the host and mount it.
 
@@ -12,8 +12,9 @@ CSI driver for provisioning host-path volume.
 - [x] Node Service implemented
     - [x] `NodePublishVolume` implemented
         - Volume corresponding to the `volume_id` published(mounted) at specified `target_path`
-    - [ ] `NodeUnpublishVolume` implemented
-    - [ ] `NodeGetCapabilities` implemented
+    - [x] `NodeUnpublishVolume` implemented
+        - This RPC is a reverse operation of `NodePublishVolume`.
+    - [x] `NodeGetCapabilities` implemented
 
 ## References
 * [Developing CSI driver](https://kubernetes-csi.github.io/docs/developing.html).
