@@ -59,9 +59,6 @@ spec:
             - mountPath: /var/lib/kubelet/pods
               mountPropagation: Bidirectional
               name: mountpoint-dir
-            - mountPath: /var/lib/kubelet/plugins
-              mountPropagation: Bidirectional
-              name: plugins-dir
 
         - name: node-driver-registrar
           image: registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.0
@@ -98,14 +95,10 @@ spec:
             type: DirectoryOrCreate
           name: socket-dir
         - hostPath:
-            path: /var/lib/kubelet/pods
+            path: /var/lib/kubelet
             type: DirectoryOrCreate
           name: mountpoint-dir
         - hostPath:
             path: /var/lib/kubelet/plugins_registry
             type: Directory
           name: registration-dir
-        - hostPath:
-            path: /var/lib/kubelet/plugins
-            type: Directory
-          name: plugins-dir

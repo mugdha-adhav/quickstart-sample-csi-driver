@@ -13,6 +13,17 @@ import (
 	"k8s.io/utils/mount"
 )
 
+const (
+	baseVolumeDir string = "/tmp/quickstart/volumes"
+)
+
+func init() {
+	if err := os.MkdirAll(baseVolumeDir, os.ModeSticky|os.ModePerm); err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+}
+
 func (d *driver) NodeGetCapabilities(context.Context, *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
 	return &csi.NodeGetCapabilitiesResponse{
 		Capabilities: []*csi.NodeServiceCapability{},

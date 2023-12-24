@@ -12,17 +12,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	baseVolumeDir string = "/tmp/quickstart/volumes"
-)
-
-func init() {
-	if err := os.MkdirAll(baseVolumeDir, os.ModeSticky|os.ModePerm); err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-}
-
 func (d *driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	log.Printf("CreateVolume: request received")
 
@@ -103,22 +92,7 @@ func (d *driver) GetCapacity(context.Context, *csi.GetCapacityRequest) (*csi.Get
 
 func (d *driver) ControllerGetCapabilities(context.Context, *csi.ControllerGetCapabilitiesRequest) (*csi.ControllerGetCapabilitiesResponse, error) {
 	return &csi.ControllerGetCapabilitiesResponse{
-		Capabilities: []*csi.ControllerServiceCapability{
-			// {
-			// 	Type: &csi.ControllerServiceCapability_Rpc{
-			// 		Rpc: &csi.ControllerServiceCapability_RPC{
-			// 			Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
-			// 		},
-			// 	},
-			// },
-			// {
-			// 	Type: &csi.ControllerServiceCapability_Rpc{
-			// 		Rpc: &csi.ControllerServiceCapability_RPC{
-			// 			Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-			// 		},
-			// 	},
-			// },
-		},
+		Capabilities: []*csi.ControllerServiceCapability{},
 	}, nil
 }
 
