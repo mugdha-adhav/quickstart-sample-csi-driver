@@ -12,6 +12,6 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
     CGO_ENABLED=0 GOOS=linux go build -o /bin/driver ./cmd/main.go
 
-FROM gcr.io/distroless/static AS run-stage
+FROM alpine AS run-stage
 COPY --from=build-stage /bin/driver /bin/driver
 ENTRYPOINT ["/bin/driver"]

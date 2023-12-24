@@ -13,6 +13,7 @@ CSI driver for mounting a volume provided by the driver inside a pod.
 1. Register the Node and Identity components using csi library like `csi.RegisterIdentityServer(serverOptions, driverOptions)`.
 1. Logic for mount and unmount volume operations goes in NodePublishVolume() and NodeUnpublishVolume() functions.
 1. Docs for [Configuring and Deploying](./docs/configure-and-deploy.md) your application explains how to setup and get your app running.
+1. After the deployment completes, you may verify if your driver is functional by following [verification docs](./docs/verify.md)
 
 ## ToDo
 ### Create a directory on the host and mount it.
@@ -26,34 +27,35 @@ CSI driver for mounting a volume provided by the driver inside a pod.
         - This RPC is a reverse operation of `NodePublishVolume`.
     - [x] `NodeGetCapabilities` implemented
 
-## Build and push image
-### Build docker image
+## Development
+### Build and push image
+#### Build docker image
 ```sh
 make build TAG="your-tag"
 ```
 
-### Push docker image to registry
+#### Push docker image to registry
 ```sh
 make push TAG="your-tag"
 ```
 
-### Load docker image in kind cluster
+#### Load docker image in kind cluster
 ```sh
 make load TAG="your-tag"
 ```
 
-## Run/Deploy
-### Run the application in docker container
+### Run/Deploy CSI driver
+#### Run the application in docker container
 ```sh
 make run TAG="your-tag"
 ```
 
-### Deploy manifests on kind cluster
+#### Deploy manifests on kind cluster
 ```sh
 make deploy-kind TAG="your-tag"
 ```
 
-## Cleanup
+### Cleanup
 ### Delete all resources from kind cluster
 ```sh
 make remove-kind TAG="your-tag"

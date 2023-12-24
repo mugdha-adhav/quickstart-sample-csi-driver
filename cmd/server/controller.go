@@ -12,10 +12,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	baseVolumeDir string = "/tmp/quickstart/volumes"
-)
-
 func (d *driver) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	log.Printf("CreateVolume: request received")
 
